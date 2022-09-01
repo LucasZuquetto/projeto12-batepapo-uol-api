@@ -23,4 +23,9 @@ app.post('/participants', (req,res) =>{
     res.status(201).send()
 })
 
+app.get('/participants', (req,res) => {
+    db.collection('UolChat').find().toArray().then((users)=>res.send(users))
+    
+})
+
 app.listen(5000, () => console.log('Listening on port 5000'))
