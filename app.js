@@ -50,9 +50,9 @@ app.get('/messages', (req,res) => {
     const limit = parseInt(req.query.limit)
     const user = req.headers.user
     if(!limit){
-        dbMessages.collection('UolMessages').find({from:user}).toArray().then((messages) => res.send(messages))
+        dbMessages.collection('UolMessages').find({$or:[{from:user},{to:user},{to:'Todos'}]}).toArray().then((messages) => res.send(messages))
     }else{
-        dbMessages.collection('UolMessages').find({from:user}).toArray().then((messages) => res.send(messages.slice(-limit)))
+        dbMessages.collection('UolMessages').find({$or:[{from:user},{to:user},{to:'Todos'}]}).toArray().then((messages) => res.send(messages.slice(-limit)))
     }
 })
 
