@@ -2,21 +2,26 @@ import express from 'express';
 import cors from 'cors'
 import { MongoClient } from 'mongodb';
 import dotenv from 'dotenv'
+import dayjs from 'dayjs';
 
 dotenv.config()
 const app = express()
 const mongoClient = new MongoClient(process.env.MONGO_URI)
-let db
+let dbParticipants
+let dbMessages
 app.use(express.json())
 app.use(cors())
 
 mongoClient.connect().then(() =>{
-    db = mongoClient.db('UolChat')
+    dbParticipants = mongoClient.db('UolParticipants')
+})
+mongoClient.connect().then(() =>{
+    dbMessages = mongoClient.db('UolMessages')
 })
 
 app.post('/participants', (req,res) =>{
     const { name } = req.body
-    db.collection('UolChat').insertOne({
+    dbParticipants.collection('UolParticipants').insertOne({
         name:name,
         lastStatus: Date.now()
     })
@@ -24,8 +29,26 @@ app.post('/participants', (req,res) =>{
 })
 
 app.get('/participants', (req,res) => {
-    db.collection('UolChat').find().toArray().then((users)=>res.send(users))
-    
+    dbParticipants.collection('UolParticipants').find().toArray().then((users)=>res.send(users))
 })
+
+app.post('/messages', (req,res) => {
+    const user = req.headers.user
+    const time = dayjs().format('HH:mm:ss')
+    const messageObject = {
+        ...req.body,
+        from:user
+    }
+    dbMessages.collection('UolMessage').insertOne({
+        ...messageObject,
+        time:time
+    })
+    res.status(201).send()
+})
+
+//app.get('/messages', (req,res) => {
+  //  const limit = parseInt(req.query.limit)
+    //const user = req.headers.user
+//})
 
 app.listen(5000, () => console.log('Listening on port 5000'))
