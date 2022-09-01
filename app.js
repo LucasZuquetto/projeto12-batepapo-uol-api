@@ -11,7 +11,16 @@ app.use(express.json())
 app.use(cors())
 
 mongoClient.connect().then(() =>{
-    db = mongoClient.db('bate-papo')
+    db = mongoClient.db('UolChat')
+})
+
+app.post('/participants', (req,res) =>{
+    const { name } = req.body
+    db.collection('UolChat').insertOne({
+        name:name,
+        lastStatus: Date.now()
+    })
+    res.status(201).send()
 })
 
 app.listen(5000, () => console.log('Listening on port 5000'))
