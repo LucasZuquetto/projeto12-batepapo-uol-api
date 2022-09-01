@@ -39,16 +39,21 @@ app.post('/messages', (req,res) => {
         ...req.body,
         from:user
     }
-    dbMessages.collection('UolMessage').insertOne({
+    dbMessages.collection('UolMessages').insertOne({
         ...messageObject,
         time:time
     })
     res.status(201).send()
 })
 
-//app.get('/messages', (req,res) => {
-  //  const limit = parseInt(req.query.limit)
-    //const user = req.headers.user
-//})
+app.get('/messages', (req,res) => {
+    const limit = parseInt(req.query.limit)
+    const user = req.headers.user
+    if(!limit){
+        dbMessages.collection('UolMessages').find({from:user}).toArray().then((messages) => res.send(messages))
+    }else{
+        dbMessages.collection('UolMessages').find({from:user}).toArray().then((messages) => res.send(messages.slice(-limit)))
+    }
+})
 
 app.listen(5000, () => console.log('Listening on port 5000'))
