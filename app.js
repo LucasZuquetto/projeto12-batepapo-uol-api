@@ -5,9 +5,7 @@ import dotenv from 'dotenv'
 import dayjs from 'dayjs';
 import joi from 'joi'
 
-//post /status updateone
-//remoção automatica de usuarios
-//validação com mongo e com joy
+ //validação com mongo e com joy
 //abort early message
 //bonus
 //prettier
@@ -20,16 +18,39 @@ let db
 app.use(express.json())
 app.use(cors())
 
+const participantSchema = joi.object({
+    name: joi.string().required()
+})
+
 mongoClient.connect().then(() =>{
     db = mongoClient.db('Bate-Papo-Uol')
 })
 
 app.post('/participants', async (req,res) =>{
     const { name } = req.body
+    const time = dayjs().format('HH:mm:ss')
+    const userExists = await db.collection('Uol-Participants').findOne({name:name})
+    const validation = participantSchema.validate(req.body, {abortEarly: true})
+    if(userExists){
+        res.sendStatus(409)
+        return
+    }
+    if(validation.error){
+        console.log(validation.error.details.map(detail => console.log(detail.message)))
+        res.sendStatus(422)
+        return
+    }
     try {
         await db.collection('Uol-Participants').insertOne({
             name:name,
             lastStatus: Date.now()
+        })
+        await db.collection('Uol-Messages').insertOne({
+            from:name,
+            to:'Todos',
+            text:'entra na sala...',
+            type:'status',
+            time: time
         })
         res.sendStatus(201)
     } catch (error) {
@@ -87,7 +108,7 @@ app.get('/messages', async (req,res) => {
 app.post('/status', async (req, res) => {
     const {user} = req.headers
     try {
-        const userStatus = await db.collection('Uol-Participants').find({name:user}).toArray()
+        const userStatus = await db.collection('Uol-Participants').findOne({name:user})
         if(!userStatus){
             res.sendStatus(404)
             return
