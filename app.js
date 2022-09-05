@@ -10,7 +10,6 @@ import dayjs from 'dayjs';
 //bonus
 //prettier
 //refatorar com async await
-//o que é new do javascript 
 
 dotenv.config()
 const app = express()
@@ -23,17 +22,28 @@ mongoClient.connect().then(() =>{
     db = mongoClient.db('Bate-Papo-Uol')
 })
 
-app.post('/participants', (req,res) =>{
-    const { name } = req.body
-    db.collection('Uol-Participants').insertOne({
-        name:name,
-        lastStatus: Date.now()
-    })
-    res.status(201).send()
+app.post('/participants', async (req,res) =>{
+    try {
+        const { name } = req.body
+        await db.collection('Uol-Participants').insertOne({
+            name:name,
+            lastStatus: Date.now()
+        })
+        res.sendStatus(201)
+    } catch (error) {
+        console.log(error)
+        res.sendStatus(500)
+    }
 })
 
-app.get('/participants', (req,res) => {
-    db.collection('Uol-Participants').find().toArray().then((users)=>res.send(users))
+app.get('/participants', async (req,res) => {
+    try {
+        const participants = await db.collection('Uol-Participants').find().toArray()
+        res.send(participants)
+    } catch (error) {
+        console.log(error)
+        res.sendStatus(500)
+    }
 })
 
 app.post('/messages', (req,res) => {
@@ -57,6 +67,26 @@ app.get('/messages', (req,res) => {
         db.collection('Uol-Messages').find({$or:[{from:user},{to:user},{to:'Todos'}]}).toArray().then((messages) => res.send(messages))
     }else{
         db.collection('Uol-Messages').find({$or:[{from:user},{to:user},{to:'Todos'}]}).toArray().then((messages) => res.send(messages.slice(-limit)))
+    }
+})
+
+app.post('/status', async (req, res) => {
+    const user = req.headers.user
+    try {
+        const userStatus = await db.collection('Uol-Participants').find({name:user}).toArray()
+        if(!userStatus){
+            res.sendStatus(404)
+            return
+        }
+        await db.collection('Uol-Participants').deleteOne({name:user})
+        await db.collection('Uol-Participants').insertOne({
+            name:user,
+            lastStatus: Date.now()
+        })
+        res.sendStatus(201)
+    } catch (error) {
+        console.log(error)
+        res.sendStatus(500)
     }
 })
 
