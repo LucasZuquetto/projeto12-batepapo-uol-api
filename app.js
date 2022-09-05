@@ -21,6 +21,11 @@ app.use(cors())
 const participantSchema = joi.object({
     name: joi.string().required()
 })
+const messageSchema = joi.object({
+    to: joi.string().required(),
+    text: joi.string().required(),
+    type: joi.valid('private_message','message').required()
+})
 
 mongoClient.connect().then(() =>{
     db = mongoClient.db('Bate-Papo-Uol')
@@ -75,6 +80,18 @@ app.post('/messages', async (req,res) => {
     const messageObject = {
         ...req.body,
         from:user
+    }
+    const userExists = await db.collection('Uol-Participants').findOne({name:user})
+    if(!userExists){
+        console.log(`${user} is not logged in`)
+        res.sendStatus(422)
+        return
+    }
+    const validation = messageSchema.validate(req.body, {abortEarly:true})
+    if(validation.error){
+        console.log(validation.error.details.map(detail => console.log(detail.message)))
+        res.sendStatus(422)
+        return
     }
     try {
         await db.collection('Uol-Messages').insertOne({
