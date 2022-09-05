@@ -7,6 +7,7 @@ import dayjs from 'dayjs';
 //post /status
 //remoção automatica de usuarios
 //validação com mongo e com joy
+//abort early message
 //bonus
 //prettier
 //refatorar com async await
@@ -46,32 +47,44 @@ app.get('/participants', async (req,res) => {
     }
 })
 
-app.post('/messages', (req,res) => {
-    const user = req.headers.user
+app.post('/messages', async (req,res) => {
+    const {user} = req.headers
     const time = dayjs().format('HH:mm:ss')
     const messageObject = {
         ...req.body,
         from:user
     }
-    db.collection('Uol-Messages').insertOne({
-        ...messageObject,
-        time:time
-    })
-    res.status(201).send()
+    try {
+        await db.collection('Uol-Messages').insertOne({
+            ...messageObject,
+            time:time
+        })
+        res.sendStatus(201)
+    } catch (error) {
+        console.log(error)
+        res.sendStatus(500)
+    }
 })
 
-app.get('/messages', (req,res) => {
+app.get('/messages', async (req,res) => {
     const limit = parseInt(req.query.limit)
-    const user = req.headers.user
-    if(!limit){
-        db.collection('Uol-Messages').find({$or:[{from:user},{to:user},{to:'Todos'}]}).toArray().then((messages) => res.send(messages))
-    }else{
-        db.collection('Uol-Messages').find({$or:[{from:user},{to:user},{to:'Todos'}]}).toArray().then((messages) => res.send(messages.slice(-limit)))
+    const {user} = req.headers
+    try {
+        if (!limit){
+            const messages = await db.collection('Uol-Messages').find({$or:[{from:user},{to:user},{to:'Todos'}]}).toArray()
+            res.send(messages)
+        }else{
+            const messages = await db.collection('Uol-Messages').find({$or:[{from:user},{to:user},{to:'Todos'}]}).toArray()
+            res.send(messages.slice(-limit))
+        }
+    } catch (error) {
+        console.log(error)
+        res.sendStatus(500)
     }
 })
 
 app.post('/status', async (req, res) => {
-    const user = req.headers.user
+    const {user} = req.headers
     try {
         const userStatus = await db.collection('Uol-Participants').find({name:user}).toArray()
         if(!userStatus){
