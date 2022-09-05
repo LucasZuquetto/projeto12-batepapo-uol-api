@@ -3,8 +3,9 @@ import cors from 'cors'
 import { MongoClient } from 'mongodb';
 import dotenv from 'dotenv'
 import dayjs from 'dayjs';
+import joi from 'joi'
 
-//post /status
+//post /status updateone
 //remoção automatica de usuarios
 //validação com mongo e com joy
 //abort early message
@@ -24,8 +25,8 @@ mongoClient.connect().then(() =>{
 })
 
 app.post('/participants', async (req,res) =>{
+    const { name } = req.body
     try {
-        const { name } = req.body
         await db.collection('Uol-Participants').insertOne({
             name:name,
             lastStatus: Date.now()
@@ -102,5 +103,18 @@ app.post('/status', async (req, res) => {
         res.sendStatus(500)
     }
 })
+setInterval(async () => {
+    const time = dayjs().format('HH:mm:ss')
+    try {
+        const afkUsers = await db.collection('Uol-Participants').find({lastStatus:{$lte: Date.now()-10000}}).toArray()
+        afkUsers.map(async (afkuser) =>{
+            await db.collection('Uol-Messages').insertOne({from:afkuser.name, to:'Todos', text:'sai da sala...', type:'status', time:time})
+            await db.collection('Uol-Participants').deleteMany({lastStatus:{$lte: Date.now()-10000}})
+        })
+    } catch (error) {
+        console.log(error)
+        res.sendStatus(500)
+    }
+}, 15000);
 
 app.listen(5000, () => console.log('Listening on port 5000'))
