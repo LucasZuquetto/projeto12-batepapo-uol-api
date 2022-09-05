@@ -5,13 +5,8 @@ import dotenv from 'dotenv'
 import dayjs from 'dayjs';
 import joi from 'joi'
 
- //validação com mongo e com joy
-//abort early message
-//bonus
-//prettier
-//refatorar com async await
-
 dotenv.config()
+
 const app = express()
 const mongoClient = new MongoClient(process.env.MONGO_URI)
 let db
@@ -125,8 +120,8 @@ app.get('/messages', async (req,res) => {
 app.post('/status', async (req, res) => {
     const {user} = req.headers
     try {
-        const userStatus = await db.collection('Uol-Participants').findOne({name:user})
-        if(!userStatus){
+        const userExists = await db.collection('Uol-Participants').findOne({name:user})
+        if(!userExists){
             res.sendStatus(404)
             return
         }
@@ -146,7 +141,13 @@ setInterval(async () => {
     try {
         const afkUsers = await db.collection('Uol-Participants').find({lastStatus:{$lte: Date.now()-10000}}).toArray()
         afkUsers.map(async (afkuser) =>{
-            await db.collection('Uol-Messages').insertOne({from:afkuser.name, to:'Todos', text:'sai da sala...', type:'status', time:time})
+            await db.collection('Uol-Messages').insertOne({
+                from:afkuser.name,
+                to:'Todos',
+                text:'sai da sala...',
+                type:'status',
+                time:time
+            })
             await db.collection('Uol-Participants').deleteMany({lastStatus:{$lte: Date.now()-10000}})
         })
     } catch (error) {
